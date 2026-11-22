@@ -10,4 +10,11 @@ for line in lines[1:]:
         continue
     if parts[1] == "0":
         continue
-    print(parts)
+    disk = {
+        "mount": parts[5],
+        "size_kb": int(parts[1]),
+        "used_kb": int(parts[2]),
+        "avail_kb": int(parts[3]),
+        "use_percent": int(parts[4].rstrip("%")),
+    }
+    print(disk)
