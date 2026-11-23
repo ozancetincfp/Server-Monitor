@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from starlette.routing import Host
 
 app = FastAPI()
 
@@ -11,8 +12,11 @@ class Disk(BaseModel):
     avail_kb: int
     use_percent: int
 
+
 class Report(BaseModel):
     disks: list[Disk]
+    hostname: str
+
 
 @app.get("/")
 def health():
