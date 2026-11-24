@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from starlette.routing import Host
 
 app = FastAPI()
 
@@ -16,6 +15,7 @@ class Disk(BaseModel):
 class Report(BaseModel):
     disks: list[Disk]
     hostname: str
+
 
 latest_reports = {}
 
@@ -34,6 +34,7 @@ def about():
 def receive_report(report: Report):
     latest_reports[report.hostname] = report
     return {"received": True, "disk_count": len(report.disks)}
+
 
 @app.get("/api/servers")
 def list_servers():
