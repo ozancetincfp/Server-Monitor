@@ -1,4 +1,7 @@
+import socket
 import subprocess
+
+import requests
 
 
 def get_disk_usage():
@@ -26,6 +29,13 @@ def get_disk_usage():
 
 
 all_disks = get_disk_usage()
-for disk in all_disks:
-    print(disk)
-print(len(all_disks))
+hostname = socket.gethostname()
+
+report = { 
+    "hostname": hostname,
+    "disks": all_disks,
+}
+
+response = requests.post("http://127.0.0.1:8000/api/reports", json=report)
+print(response.status_code)
+print(response.json())
