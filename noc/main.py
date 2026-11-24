@@ -17,6 +17,8 @@ class Report(BaseModel):
     disks: list[Disk]
     hostname: str
 
+latest_reports = {}
+
 
 @app.get("/")
 def health():
@@ -30,5 +32,9 @@ def about():
 
 @app.post("/api/reports")
 def receive_report(report: Report):
-    print(report)
+    latest_reports[report.hostname] = report
     return {"received": True, "disk_count": len(report.disks)}
+
+@app.get("/api/servers")
+def list_servers():
+    return latest_reports
