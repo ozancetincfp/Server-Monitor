@@ -36,6 +36,9 @@ report = {
     "disks": all_disks,
 }
 
-response = requests.post("http://127.0.0.1:8000/api/reports", json=report)
-print(response.status_code)
-print(response.json())
+try:
+    response = requests.post("http://127.0.0.1:8000/api/reports", json=report, timeout=10)
+    response.raise_for_status()
+    print(response.json())
+except requests.RequestException as error:
+    print(f"Could not send report: {error}")
