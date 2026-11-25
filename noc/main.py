@@ -1,7 +1,7 @@
 import sqlite3
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 DB_PATH = "noc.db"
@@ -24,11 +24,15 @@ class Report(BaseModel):
     disks: list[Disk]
     hostname: str
 
+
 def init_db():
     conn = sqlite3.connect(DB_PATH)
-    conn.execute("CREATE TABLE IF NOT EXISTS disk_usage (id INTEGER PRIMARY KEY, hostname TEXT, received_at TEXT, mount TEXT, size_kb INTEGER, used_kb INTEGER, avail_kb INTEGER, use_percent INTEGER)")
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS disk_usage (id INTEGER PRIMARY KEY, hostname TEXT, received_at TEXT, mount TEXT, size_kb INTEGER, used_kb INTEGER, avail_kb INTEGER, use_percent INTEGER)"
+    )
     conn.commit()
     conn.close()
+
 
 def disk_status(use_percent: int):
     if use_percent >= CRITICAL_PERCENT:
@@ -40,10 +44,6 @@ def disk_status(use_percent: int):
 
 
 init_db()
-
-
-
-latest_reports = {}
 
 
 @app.get("/")
@@ -58,14 +58,20 @@ def about():
 
 @app.post("/api/reports")
 def receive_report(report: Report):
-    latest_reports[report.hostname] = report
-
-    received_at = datetime.now(timezone.utc).isoformat()
+    received_at = datetime.now(UTC).isoformat()
     conn = sqlite3.connect(DB_PATH)
     for disk in report.disks:
         conn.execute(
             "INSERT INTO disk_usage (hostname, received_at, mount, size_kb, used_kb, avail_kb, use_percent) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (report.hostname,received_at ,disk.mount, disk.size_kb, disk.used_kb, disk.avail_kb, disk.use_percent),
+            (
+                report.hostname,
+                received_at,
+                disk.mount,
+                disk.size_kb,
+                disk.used_kb,
+                disk.avail_kb,
+                disk.use_percent,
+            ),
         )
     conn.commit()
     conn.close()
@@ -94,10 +100,10 @@ def list_servers():
             statuses.append(status)
             disks.append({"mount": mount, "use_percent": use_percent, "status": status})
 
-        seen_at = datetime.fromisoformat(last_seen)     
-        offline_limit = datetime.now(timezone.utc) - timedelta(hours=OFFLINE_HOURS)
+        seen_at = datetime.fromisoformat(last_seen)
+        offline_limit = datetime.now(UTC) - timedelta(hours=OFFLINE_HOURS)
 
-        if seen_at < offline_limit:                                                    
+        if seen_at < offline_limit:
             server_status = "OFFLINE"
         elif "CRITICAL" in statuses:
             server_status = "CRITICAL"
@@ -106,12 +112,35 @@ def list_servers():
         else:
             server_status = "OK"
 
-        result.append({
-            "hostname": hostname,
-            "last_seen": last_seen,
-            "status": server_status,
-            "disks": disks,
-        })
+        result.append(
+            {
+                "hostname": hostname,
+                "last_seen": last_seen,
+                "status": server_status,
+                "disks": disks,
+            }
+        )
 
     conn.close()
     return result
+
+
+@app.get("/api/servers/{hostname}")
+def server_history(hostname: str):
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute(
+        "SELECT received_at, mount, use_percent FROM disk_usage WHERE hostname = ? ORDER BY received_at DESC LIMIT 100",
+        (hostname,),
+    ).fetchall()
+    conn.close()
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="Server not found")
+
+    history = []
+    for received_at, mount, use_percent in rows:
+        history.append(
+            {"received_at": received_at, "mount": mount, "use_percent": use_percent}
+        )
+
+    return history

@@ -6,7 +6,7 @@ import requests
 
 def get_disk_usage():
     command = ["df", "-P", "-k"]
-    result = subprocess.run(command, capture_output=True, text=True)
+    result = subprocess.run(command, capture_output=True, text=True, check=True)
     lines = result.stdout.splitlines()
 
     disks = []
