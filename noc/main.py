@@ -5,6 +5,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 DB_PATH = "noc.db"
+WARNING_PERCENT = 80
+CRITICAL_PERCENT = 90
 
 app = FastAPI()
 
@@ -27,9 +29,17 @@ def init_db():
     conn.commit()
     conn.close()
 
+def disk_status(use_percent: int):
+    if use_percent >= CRITICAL_PERCENT:
+        return "CRITICAL"
+    elif use_percent >= WARNING_PERCENT:
+        return "WARNING"
+    else:
+        return "OK"
 
 
 init_db()
+
 
 
 latest_reports = {}
@@ -64,4 +74,38 @@ def receive_report(report: Report):
 
 @app.get("/api/servers")
 def list_servers():
-    return latest_reports
+    conn = sqlite3.connect(DB_PATH)
+    servers = conn.execute(
+        "SELECT hostname, MAX(received_at) FROM disk_usage GROUP BY hostname"
+    ).fetchall()
+
+    result = []
+    for hostname, last_seen in servers:
+        rows = conn.execute(
+            "SELECT mount, use_percent FROM disk_usage WHERE hostname = ? AND received_at = ?",
+            (hostname, last_seen),
+        ).fetchall()
+
+        disks = []
+        statuses = []
+        for mount, use_percent in rows:
+            status = disk_status(use_percent)
+            statuses.append(status)
+            disks.append({"mount": mount, "use_percent": use_percent, "status": status})
+
+        if "CRITICAL" in statuses:
+            server_status = "CRITICAL"
+        elif "WARNING" in statuses:
+            server_status = "WARNING"
+        else:
+            server_status = "OK"
+
+        result.append({
+            "hostname": hostname,
+            "last_seen": last_seen,
+            "status": server_status,
+            "disks": disks,
+        })
+
+    conn.close()
+    return result
