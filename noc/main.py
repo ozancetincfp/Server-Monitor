@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -7,6 +7,7 @@ from pydantic import BaseModel
 DB_PATH = "noc.db"
 WARNING_PERCENT = 80
 CRITICAL_PERCENT = 90
+OFFLINE_HOURS = 2
 
 app = FastAPI()
 
@@ -93,7 +94,12 @@ def list_servers():
             statuses.append(status)
             disks.append({"mount": mount, "use_percent": use_percent, "status": status})
 
-        if "CRITICAL" in statuses:
+        seen_at = datetime.fromisoformat(last_seen)     
+        offline_limit = datetime.now(timezone.utc) - timedelta(hours=OFFLINE_HOURS)
+
+        if seen_at < offline_limit:                                                    
+            server_status = "OFFLINE"
+        elif "CRITICAL" in statuses:
             server_status = "CRITICAL"
         elif "WARNING" in statuses:
             server_status = "WARNING"
