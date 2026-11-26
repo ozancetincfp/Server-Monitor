@@ -1,8 +1,10 @@
+import logging
 import socket
 import subprocess
 
 import requests
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 def get_disk_usage():
     command = ["df", "-P", "-k"]
@@ -39,6 +41,6 @@ report = {
 try:
     response = requests.post("http://127.0.0.1:8000/api/reports", json=report, timeout=10)
     response.raise_for_status()
-    print(response.json())
+    logging.info(f"Report sent for {hostname}: {len(all_disks)} disks")
 except requests.RequestException as error:
-    print(f"Could not send report: {error}")
+    logging.error(f"Could not send report: {error}")
