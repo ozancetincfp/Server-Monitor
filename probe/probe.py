@@ -10,6 +10,7 @@ load_dotenv()
 
 NOC_URL = os.environ.get("NOC_URL", "http://127.0.0.1:8000")
 PROBE_HOSTNAME = os.environ.get("PROBE_HOSTNAME", "")
+API_KEY = os.environ.get("API_KEY", "")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -50,7 +51,7 @@ report = {
 
 
 try:
-    response = requests.post(f"{NOC_URL}/api/reports", json=report, timeout=10)
+    response = requests.post(f"{NOC_URL}/api/reports", json=report, timeout=10,headers={"X-API-Key": API_KEY})
     response.raise_for_status()
     logging.info(f"Report sent for {hostname}: {len(all_disks)} disks")
 except requests.RequestException as error:

@@ -1,8 +1,16 @@
+import os
+import secrets
 import sqlite3
 from datetime import UTC, datetime, timedelta
 
-from fastapi import FastAPI, HTTPException
+from dotenv import load_dotenv
+from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
+
+load_dotenv()
+
+API_KEY = os.environ.get("API_KEY", "")
+
 
 DB_PATH = "noc.db"
 WARNING_PERCENT = 80
@@ -57,7 +65,10 @@ def about():
 
 
 @app.post("/api/reports")
-def receive_report(report: Report):
+def receive_report(report: Report, x_api_key: str = Header(default="")):
+    if not API_KEY or not secrets.compare_digest(x_api_key, API_KEY):
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    
     received_at = datetime.now(UTC).isoformat()
     conn = sqlite3.connect(DB_PATH)
     for disk in report.disks:
