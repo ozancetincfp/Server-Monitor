@@ -2,6 +2,8 @@ import logging
 import os
 import socket
 import subprocess
+import sys
+from unittest import skip
 
 import requests
 from dotenv import load_dotenv
@@ -25,6 +27,8 @@ def get_disk_usage():
         parts = line.split(maxsplit=5)
         if not parts[0].startswith("/dev/"):
             continue
+        if parts[0].startswith("/dev/loop"):
+            continue
         if parts[1] == "0":
             continue
         disk = {
@@ -39,7 +43,11 @@ def get_disk_usage():
     return disks
 
 
-all_disks = get_disk_usage()
+try:
+    all_disks = get_disk_usage()
+except (subprocess.CalledProcessError, OSError) as error:
+    logging.error(f"Could not read disk usage: {error}")
+    sys.exit(1)
 
 hostname = PROBE_HOSTNAME or socket.gethostname()
 
@@ -49,10 +57,15 @@ report = {
 }
 
 
-
 try:
-    response = requests.post(f"{NOC_URL}/api/reports", json=report, timeout=10,headers={"X-API-Key": API_KEY})
+    response = requests.post(
+        f"{NOC_URL}/api/reports",
+        json=report,
+        timeout=10,
+        headers={"X-API-Key": API_KEY},
+    )
     response.raise_for_status()
     logging.info(f"Report sent for {hostname}: {len(all_disks)} disks")
 except requests.RequestException as error:
     logging.error(f"Could not send report: {error}")
+    sys.exit(1)
