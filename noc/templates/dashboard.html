@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>NOC</title>
+</head>
+<body>
+  <h1>NOC – Server Status</h1>
+
+  <table>
+    <tr>
+      <th>Server</th>
+      <th>Status</th>
+      <th>Last seen</th>
+    </tr>
+    {% for server in servers %}
+    <tr>
+      <td>{{server.hostname}}</td>
+      <td>{{server.status}}</td>
+      <td>{{server.last_seen}}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</body>
+</html>

@@ -4,7 +4,9 @@ import sqlite3
 from datetime import UTC, datetime, timedelta
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 load_dotenv()
@@ -18,6 +20,7 @@ CRITICAL_PERCENT = int(os.environ.get("CRITICAL_PERCENT", "90"))
 OFFLINE_HOURS = int(os.environ.get("OFFLINE_HOURS", "2"))
 
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 
 
 class Disk(BaseModel):
@@ -53,45 +56,7 @@ def disk_status(use_percent: int):
 
 init_db()
 
-
-@app.get("/")
-def health():
-    return {"status": "ok"}
-
-
-@app.get("/about")
-def about():
-    return {"project": "NOC", "version": 1}
-
-
-@app.post("/api/reports")
-def receive_report(report: Report, x_api_key: str = Header(default="")):
-    if not API_KEY or not secrets.compare_digest(x_api_key, API_KEY):
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    
-    received_at = datetime.now(UTC).isoformat()
-    conn = sqlite3.connect(DB_PATH)
-    for disk in report.disks:
-        conn.execute(
-            "INSERT INTO disk_usage (hostname, received_at, mount, size_kb, used_kb, avail_kb, use_percent) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (
-                report.hostname,
-                received_at,
-                disk.mount,
-                disk.size_kb,
-                disk.used_kb,
-                disk.avail_kb,
-                disk.use_percent,
-            ),
-        )
-    conn.commit()
-    conn.close()
-
-    return {"received": True, "disk_count": len(report.disks)}
-
-
-@app.get("/api/servers")
-def list_servers():
+def get_servers():
     conn = sqlite3.connect(DB_PATH)
     servers = conn.execute(
         "SELECT hostname, MAX(received_at) FROM disk_usage GROUP BY hostname"
@@ -134,6 +99,56 @@ def list_servers():
 
     conn.close()
     return result
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+@app.get("/about")
+def about():
+    return {"project": "NOC", "version": 1}
+
+
+@app.post("/api/reports")
+def receive_report(report: Report, x_api_key: str = Header(default="")):
+    if not API_KEY or not secrets.compare_digest(x_api_key, API_KEY):
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+    received_at = datetime.now(UTC).isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    for disk in report.disks:
+        conn.execute(
+            "INSERT INTO disk_usage (hostname, received_at, mount, size_kb, used_kb, avail_kb, use_percent) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                report.hostname,
+                received_at,
+                disk.mount,
+                disk.size_kb,
+                disk.used_kb,
+                disk.avail_kb,
+                disk.use_percent,
+            ),
+        )
+    conn.commit()
+    conn.close()
+
+    return {"received": True, "disk_count": len(report.disks)}
+
+
+
+
+@app.get("/api/servers")
+def list_servers():
+    return get_servers()
+
+
+@app.get("/", response_class=HTMLResponse)
+def dashboard(request: Request):
+    return templates.TemplateResponse(
+        request, "dashboard.html", {"servers": get_servers()}
+    )
 
 
 @app.get("/api/servers/{hostname}")
