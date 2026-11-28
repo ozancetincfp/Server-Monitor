@@ -14,7 +14,7 @@
       <th>Last seen</th>
     </tr>
     {% for server in servers %}
-    <tr>
+    <tr class="{{ server.status|lower }}">
       <td>{{server.hostname}}</td>
       <td>{{server.status}}</td>
       <td>{{server.last_seen}}</td>
@@ -23,3 +23,26 @@
   </table>
 </body>
 </html>
+
+
+<style>
+    body {
+      font-family: sans-serif;
+      margin: 40px;
+    }
+    table {
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px 16px;
+      text-align: left;
+    }
+    th {
+      background: #f0f0f0;
+    }
+    .critical { background: #f8d7da; }
+    .warning  { background: #fff3cd; }
+    .ok       { background: #d1e7dd; }
+    .offline  { background: #e2e3e5; }
+  </style>

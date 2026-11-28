@@ -12,8 +12,6 @@ from pydantic import BaseModel
 load_dotenv()
 
 API_KEY = os.environ.get("API_KEY", "")
-
-
 DB_PATH = os.environ.get("DB_PATH", "noc.db")
 WARNING_PERCENT = int(os.environ.get("WARNING_PERCENT", "80"))
 CRITICAL_PERCENT = int(os.environ.get("CRITICAL_PERCENT", "90"))
