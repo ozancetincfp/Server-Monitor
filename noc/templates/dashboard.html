@@ -2,54 +2,43 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="refresh" content="60">
   <title>NOC</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      margin: 40px;
-    }
-    table {
-      border-collapse: collapse;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px 16px;
-      text-align: left;
-    }
-    th {
-      background: #f0f0f0;
-    }
-    .critical { background: #f8d7da; }
-    .warning  { background: #fff3cd; }
-    .ok       { background: #d1e7dd; }
-    .offline  { background: #e2e3e5; }
-  </style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-  <h1>NOC – Server Status</h1>
+  {% set colors = {"CRITICAL": "danger", "WARNING": "warning", "OK": "success", "OFFLINE": "secondary"} %}
 
-  <table>
-    <tr>
-      <th>Server</th>
-      <th>Status</th>
-      <th>Last seen</th>
-      <th>Problems</th>
-    </tr>
-    {% for server in servers %}
-    <tr class="{{ server.status|lower }}">
-      <td>{{ server.hostname }}</td>
-      <td>{{ server.status }}</td>
-      <td title="{{ server.last_seen }}">{{ server.last_seen_ago }}</td>
-      <td>
-        {% for disk in server.disks %}
-          {% if disk.status != "OK" %}
-            <div class="{{ disk.status|lower }}">{{ disk.mount }}: {{ disk.use_percent }}%</div>
-          {% endif %}
+  <div class="container py-4">
+    <h1 class="mb-4">NOC – Server Status</h1>
+
+    <table class="table table-bordered table-hover">
+      <thead>
+        <tr>
+          <th>Server</th>
+          <th>Status</th>
+          <th>Last seen</th>
+          <th>Problems</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for server in servers %}
+        <tr class="table-{{ colors[server.status] }}">
+          <td>{{ server.hostname }}</td>
+          <td><span class="badge text-bg-{{ colors[server.status] }}">{{ server.status }}</span></td>
+          <td title="{{ server.last_seen }}">{{ server.last_seen_ago }}</td>
+          <td>
+            {% for disk in server.disks %}
+              {% if disk.status != "OK" %}
+                <span class="badge text-bg-{{ colors[disk.status] }}">{{ disk.mount }}: {{ disk.use_percent }}%</span>
+              {% endif %}
+            {% endfor %}
+          </td>
+        </tr>
         {% endfor %}
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
+      </tbody>
+    </table>
+  </div>
 </body>
 </html>
