@@ -4,29 +4,7 @@
   <meta charset="utf-8">
   <meta http-equiv="refresh" content="60">
   <title>NOC</title>
-</head>
-<body>
-  <h1>NOC – Server Status</h1>
-
-  <table>
-    <tr>
-      <th>Server</th>
-      <th>Status</th>
-      <th>Last seen</th>
-    </tr>
-    {% for server in servers %}
-    <tr class="{{ server.status|lower }}">
-      <td>{{server.hostname}}</td>
-      <td>{{server.status}}</td>
-      <td>{{server.last_seen}}</td>
-    </tr>
-    {% endfor %}
-  </table>
-</body>
-</html>
-
-
-<style>
+  <style>
     body {
       font-family: sans-serif;
       margin: 40px;
@@ -47,3 +25,31 @@
     .ok       { background: #d1e7dd; }
     .offline  { background: #e2e3e5; }
   </style>
+</head>
+<body>
+  <h1>NOC – Server Status</h1>
+
+  <table>
+    <tr>
+      <th>Server</th>
+      <th>Status</th>
+      <th>Last seen</th>
+      <th>Problems</th>
+    </tr>
+    {% for server in servers %}
+    <tr class="{{ server.status|lower }}">
+      <td>{{ server.hostname }}</td>
+      <td>{{ server.status }}</td>
+      <td>{{ server.last_seen }}</td>
+      <td>
+        {% for disk in server.disks %}
+          {% if disk.status != "OK" %}
+            <div class="{{ disk.status|lower }}">{{ disk.mount }}: {{ disk.use_percent }}%</div>
+          {% endif %}
+        {% endfor %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</body>
+</html>
