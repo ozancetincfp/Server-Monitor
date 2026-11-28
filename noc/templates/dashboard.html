@@ -40,7 +40,7 @@
     <tr class="{{ server.status|lower }}">
       <td>{{ server.hostname }}</td>
       <td>{{ server.status }}</td>
-      <td>{{ server.last_seen }}</td>
+      <td title="{{ server.last_seen }}">{{ server.last_seen_ago }}</td>
       <td>
         {% for disk in server.disks %}
           {% if disk.status != "OK" %}

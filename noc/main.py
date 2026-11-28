@@ -51,6 +51,20 @@ def disk_status(use_percent: int):
     else:
         return "OK"
 
+def time_ago(moment):
+    seconds = int((datetime.now(UTC) - moment).total_seconds())
+    if seconds < 60:
+        return "just now"
+    minutes = seconds // 60
+    if minutes < 60:
+        return f"{minutes} min ago"
+    hours = minutes // 60
+    if hours < 24:
+        return f"{hours} h ago"
+    days = hours // 24
+    if days == 1:
+        return "1 day ago"
+    return f"{days} days ago"
 
 init_db()
 
@@ -92,6 +106,7 @@ def get_servers():
                 "last_seen": last_seen,
                 "status": server_status,
                 "disks": disks,
+                "last_seen_ago": time_ago(seen_at),
             }
         )
 
